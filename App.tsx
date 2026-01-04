@@ -1,14 +1,13 @@
-
 import React, { useState, useEffect } from 'react';
-import { PropertyData, INITIAL_DATA, VideoGuide } from './types';
-import { generateGuestGuide } from './services/geminiService';
-import { supabase } from './services/supabaseClient';
-import { Input } from './components/Input';
-import { ImageUpload } from './components/ImageUpload';
-import { GuideViewer } from './components/GuideViewer';
-import { Login } from './components/Login';
-import { Dashboard } from './components/Dashboard';
-import { QRModal } from './components/QRModal';
+import { PropertyData, INITIAL_DATA, VideoGuide } from './types.ts';
+import { generateGuestGuide } from './services/geminiService.ts';
+import { supabase } from './services/supabaseClient.ts';
+import { Input } from './components/Input.tsx';
+import { ImageUpload } from './components/ImageUpload.tsx';
+import { GuideViewer } from './components/GuideViewer.tsx';
+import { Login } from './components/Login.tsx';
+import { Dashboard } from './components/Dashboard.tsx';
+import { QRModal } from './components/QRModal.tsx';
 
 type AppMode = 'AUTH' | 'ONBOARDING' | 'DASHBOARD' | 'EDITOR' | 'VIEWER' | 'GUEST_VIEW';
 

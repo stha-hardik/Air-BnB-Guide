@@ -1,6 +1,5 @@
-
 import { GoogleGenAI, Type } from "@google/genai";
-import { PropertyData } from "../types";
+import { PropertyData } from "../types.ts";
 
 const SYSTEM_INSTRUCTION = `
 You are a hospitality-focused Airbnb Superhost assistant.
@@ -52,8 +51,6 @@ export const generateGuestGuide = async (data: PropertyData): Promise<string> =>
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   
   // Create a mapping to avoid sending large base64 strings to the LLM.
-  // The LLM doesn't need to process the binary pixels to write a manual.
-  // We use placeholders to keep the request payload tiny and fast.
   const imageMap: Record<string, string> = {
     "IMG_PLACEHOLDER_HOST": data.hostImageUrl || '',
     "IMG_PLACEHOLDER_HERO": data.heroImageUrl || '',
