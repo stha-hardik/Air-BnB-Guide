@@ -28,17 +28,24 @@ export const GuideViewer: React.FC<GuideViewerProps> = ({ content, propertyName,
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    if (!content) return;
+
     try {
-      if (content) {
-        setData(JSON.parse(content));
+      // Robust cleaning of the input string to handle potential markdown code blocks from LLMs
+      let cleanContent = content.trim();
+      if (cleanContent.startsWith('```')) {
+        cleanContent = cleanContent.replace(/^```(?:json)?/, '').replace(/```$/, '').trim();
       }
+      setData(JSON.parse(cleanContent));
     } catch (e) {
-      console.error("Failed to parse guide content", e);
+      console.error("Failed to parse guide content", e, content);
+      // Fallback to empty data to avoid permanent loading state if parsing fails
+      setData({});
     }
   }, [content]);
 
   useEffect(() => {
-    if (data && !chatSession) {
+    if (data && Object.keys(data).length > 0 && !chatSession) {
       setChatSession(startConciergeChat(data));
     }
   }, [data, chatSession]);
@@ -68,7 +75,13 @@ export const GuideViewer: React.FC<GuideViewerProps> = ({ content, propertyName,
     }
   };
 
-  if (!data) return <div className="p-8 text-center text-slate-500">Loading guide...</div>;
+  if (!data) return <div className="p-20 text-center text-slate-400 font-medium">Preparing your digital guide...</div>;
+  if (Object.keys(data).length === 0) return (
+    <div className="p-20 text-center space-y-4">
+      <p className="text-slate-500">Oops! We couldn't load the guide details.</p>
+      <button onClick={onBack} className="text-rose-500 font-bold underline">Go Back</button>
+    </div>
+  );
 
   return (
     <div className="max-w-4xl mx-auto space-y-8 pb-32 animate-in fade-in duration-500">

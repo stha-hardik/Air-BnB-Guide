@@ -185,20 +185,28 @@ const App: React.FC = () => {
   };
 
   const handleView = async (guide: PropertyData) => {
+    // Clear and set the target guide first to avoid rendering stale content
+    setGeneratedContent(null);
     setActiveGuide(guide);
+
     if (guide.aiGeneratedContent) {
       setGeneratedContent(guide.aiGeneratedContent);
       setMode('VIEWER');
       return;
     }
+
     setIsGenerating(true);
     try {
       const content = await generateGuestGuide(guide);
+      if (!content || content === "{}") throw new Error("AI returned empty content");
+      
       setGeneratedContent(content);
+      // Save the generated content back to Supabase for future use
       await supabase.from('guides').update({ aiGeneratedContent: content }).eq('id', guide.id);
       setMode('VIEWER');
     } catch (err) {
-      alert("AI Superhost busy. Try again.");
+      console.error("View generation error:", err);
+      alert("AI Superhost is currently busy or the photos are too large. Please try again in a few moments.");
     } finally {
       setIsGenerating(false);
     }
@@ -224,9 +232,8 @@ const App: React.FC = () => {
 
     setIsGenerating(true);
     try {
-      // Robust filtering for video guides
       const sanitizedVideoGuides = (activeGuide.videoGuides || [])
-        .filter(v => v && typeof v.title === 'string' && typeof v.url === 'string' && v.title.trim() && v.url.trim());
+        .filter(v => v && v.title?.trim() && v.url?.trim());
       
       const guideToSubmit = { ...activeGuide, videoGuides: sanitizedVideoGuides };
       

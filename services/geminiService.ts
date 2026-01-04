@@ -5,10 +5,13 @@ const SYSTEM_INSTRUCTION = `
 You are a hospitality-focused Airbnb Superhost assistant.
 Your task is to create a professional digital House Manual JSON.
 
-CRITICAL RULES FOR VIDEO GUIDES:
-1. You MUST include EVERY YouTube URL provided in the "Video Guides" input.
-2. These videos are often tutorials for appliances (coffee machine), locks, or electronics.
-3. Ensure the titles in the JSON match or professionally refine the titles provided by the host.
+CRITICAL RULES:
+1. Return ONLY the JSON object. No markdown, no pre-amble.
+2. You MUST include EVERY YouTube URL provided in the "Video Guides" input.
+3. Use THESE EXACT placeholders for images:
+   - Host Photo: "IMG_PLACEHOLDER_HOST"
+   - Hero Photo: "IMG_PLACEHOLDER_HERO"
+   - Gallery images: "IMG_PLACEHOLDER_GALLERY_N" where N is the index.
 
 REQUIRED JSON STRUCTURE:
 {
@@ -50,7 +53,6 @@ REQUIRED JSON STRUCTURE:
 export const generateGuestGuide = async (data: PropertyData): Promise<string> => {
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   
-  // Create a mapping to avoid sending large base64 strings to the LLM.
   const imageMap: Record<string, string> = {
     "IMG_PLACEHOLDER_HOST": data.hostImageUrl || '',
     "IMG_PLACEHOLDER_HERO": data.heroImageUrl || '',
@@ -80,13 +82,6 @@ export const generateGuestGuide = async (data: PropertyData): Promise<string> =>
     Activities: ${data.activities}
     Tasks: ${data.checkoutTasks}
     Video Guides: ${JSON.stringify(data.videoGuides || [])}
-
-    INSTRUCTIONS: 
-    1. Generate the guest guide JSON following the system instructions.
-    2. Use THESE EXACT placeholders for images:
-       - Host Photo: "IMG_PLACEHOLDER_HOST"
-       - Hero Photo: "IMG_PLACEHOLDER_HERO"
-       - Gallery: ${JSON.stringify(galleryPlaceholders)}
   `;
 
   try {
@@ -102,9 +97,15 @@ export const generateGuestGuide = async (data: PropertyData): Promise<string> =>
 
     let resultText = response.text || "{}";
     
+    // Safety check: LLMs sometimes ignore the 'no markdown' instruction
+    if (resultText.includes('```')) {
+      resultText = resultText.replace(/```(?:json)?/g, '').replace(/```/g, '').trim();
+    }
+
     // Re-hydrate the images back into the JSON string before returning
     Object.entries(imageMap).forEach(([placeholder, realValue]) => {
       if (realValue) {
+        // Use a safe string replacement that doesn't break if base64 contains special chars
         resultText = resultText.split(`"${placeholder}"`).join(`"${realValue}"`);
       }
     });
@@ -112,29 +113,27 @@ export const generateGuestGuide = async (data: PropertyData): Promise<string> =>
     return resultText;
   } catch (error) {
     console.error("Error generating guide:", error);
-    throw new Error("AI Superhost timed out. This usually happens if photos are too large. Try using smaller images or fewer gallery photos.");
+    throw new Error("AI Superhost timed out or returned invalid data. Try using fewer high-resolution photos.");
   }
 };
 
 export const startConciergeChat = (guideData: any) => {
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   
-  // Clean the guide data for the chat context to avoid token bloat from images
   const sanitizedData = JSON.parse(JSON.stringify(guideData));
-  if (sanitizedData.heroImageUrl) sanitizedData.heroImageUrl = "[Image URL]";
+  if (sanitizedData.heroImageUrl) sanitizedData.heroImageUrl = "[Hero Image]";
   if (sanitizedData.host?.photo) sanitizedData.host.photo = "[Host Photo]";
-  if (sanitizedData.gallery) sanitizedData.gallery = `[${sanitizedData.gallery.length} photos available in gallery]`;
+  if (sanitizedData.gallery) sanitizedData.gallery = `[${sanitizedData.gallery.length} photos available]`;
 
   return ai.chats.create({
     model: 'gemini-3-flash-preview',
     config: {
       systemInstruction: `
         You are the Smart Concierge for this property: ${JSON.stringify(sanitizedData)}.
-        Your goal is to help the guest with any questions they have about their stay.
-        Answer based ONLY on the provided guide data. 
-        If a video guide exists (e.g., for the smart lock or TV), tell the guest specifically that a video tutorial is available in the "Video Tutorials" section.
-        If you don't know the answer, politely suggest they contact the host, ${sanitizedData.host?.name || 'the host'}, directly.
-        Be extremely friendly, helpful, and concise.
+        Answer guest questions using ONLY this information. 
+        If you don't know the answer, tell them to contact ${sanitizedData.host?.name || 'the host'}.
+        Mention video tutorials if they ask about something that has a video guide.
+        Keep answers short, friendly, and helpful.
       `,
     },
   });

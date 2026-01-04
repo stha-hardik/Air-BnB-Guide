@@ -7,12 +7,9 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script>
-      // Shim process.env for the browser
-      window.process = {
-        env: {
-          API_KEY: "" // Will be handled by the platform or build environment
-        }
-      };
+      // Non-destructive shim for process.env
+      window.process = window.process || {};
+      window.process.env = window.process.env || {};
     </script>
     <style>
         body {
@@ -60,7 +57,6 @@
 </head>
 <body>
     <div id="root"></div>
-    <!-- Entry point for the application -->
     <script type="module" src="index.tsx"></script>
 </body>
 </html>
