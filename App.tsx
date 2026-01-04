@@ -185,7 +185,7 @@ const App: React.FC = () => {
   };
 
   const handleView = async (guide: PropertyData) => {
-    // Clear and set the target guide first to avoid rendering stale content
+    // Clear old state first to ensure fresh render
     setGeneratedContent(null);
     setActiveGuide(guide);
 
@@ -198,15 +198,16 @@ const App: React.FC = () => {
     setIsGenerating(true);
     try {
       const content = await generateGuestGuide(guide);
-      if (!content || content === "{}") throw new Error("AI returned empty content");
+      if (!content || content === "{}" || content.trim() === "") {
+        throw new Error("AI failed to generate content.");
+      }
       
       setGeneratedContent(content);
-      // Save the generated content back to Supabase for future use
       await supabase.from('guides').update({ aiGeneratedContent: content }).eq('id', guide.id);
       setMode('VIEWER');
     } catch (err) {
       console.error("View generation error:", err);
-      alert("AI Superhost is currently busy or the photos are too large. Please try again in a few moments.");
+      alert("AI Superhost is currently busy. Please try again in a few seconds.");
     } finally {
       setIsGenerating(false);
     }

@@ -7,9 +7,12 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script>
-      // Non-destructive shim for process.env
-      window.process = window.process || {};
-      window.process.env = window.process.env || {};
+      // Global shim for process.env to prevent crashes in the browser
+      window.process = {
+        env: {
+          API_KEY: "" 
+        }
+      };
     </script>
     <style>
         body {
