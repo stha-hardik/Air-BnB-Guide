@@ -1,0 +1,5 @@
+{
+  "name": "GuestGuide AI",
+  "description": "A professional digital concierge assistant that generates clear, mobile-friendly guest guides for hotels, resorts, and vacation rentals using Gemini AI.",
+  "requestFramePermissions": []
+}
